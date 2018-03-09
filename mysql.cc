@@ -14,7 +14,7 @@ using v8::Object;
 using v8::ObjectTemplate;
 using v8::PropertyAttribute;
 using v8::String;
-using v8::Undefined;
+using v8::Null;
 using v8::Value;
 
 void my_connect(const FunctionCallbackInfo<Value>& args) {
@@ -105,8 +105,10 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
       }
       idx++;
     }
+    args.GetReturnValue().Set(results);
+    return;
   }
-  args.GetReturnValue().Set(results);
+  args.GetReturnValue().Set(Null(isolate));
 }
 
 void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
@@ -135,7 +137,7 @@ void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
     args.GetReturnValue().Set(obj);
     return;
   }
-  args.GetReturnValue().Set(Undefined(isolate));
+  args.GetReturnValue().Set(Null(isolate));
 }
 
 void my_client_info(const FunctionCallbackInfo<Value>& args) {

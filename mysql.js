@@ -2,7 +2,7 @@ const _my = require('./_mysql')
 
 function *rset(cn,query) {
 	var res = _my.query(cn.handle,query,true)
-	while((r = _my.fetch_row(res)) != undefined)
+	while((r = _my.fetch_row(res)) != null)
 		yield r;
 }
 

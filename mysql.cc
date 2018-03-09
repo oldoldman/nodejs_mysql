@@ -3,9 +3,6 @@
 /*
 clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
 */
-
-namespace demo {
-
 using v8::Array;
 using v8::Boolean;
 using v8::External;
@@ -26,21 +23,21 @@ void my_connect(const FunctionCallbackInfo<Value>& args) {
   Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
   con = mysql_real_connect(con,"localhost","root","shang1974","mysql",0,"/tmp/mysql.sock",0);
 
-	Local<String> handle = String::NewFromUtf8(isolate,"handle");
-	Local<String> host = String::NewFromUtf8(isolate,"host");
-	Local<String> user = String::NewFromUtf8(isolate,"user");
-	Local<String> passwd = String::NewFromUtf8(isolate,"passwd");
-	Local<String> unix_socket = String::NewFromUtf8(isolate,"unix_socket");
-	Local<String> server_version = String::NewFromUtf8(isolate,"server_version");
-	Local<String> host_info = String::NewFromUtf8(isolate,"host_info");
-	Local<String> info = String::NewFromUtf8(isolate,"info");
-	Local<String> db = String::NewFromUtf8(isolate,"db");
+  Local<String> handle = String::NewFromUtf8(isolate,"handle");
+  Local<String> host = String::NewFromUtf8(isolate,"host");
+  Local<String> user = String::NewFromUtf8(isolate,"user");
+  Local<String> passwd = String::NewFromUtf8(isolate,"passwd");
+  Local<String> unix_socket = String::NewFromUtf8(isolate,"unix_socket");
+  Local<String> server_version = String::NewFromUtf8(isolate,"server_version");
+  Local<String> host_info = String::NewFromUtf8(isolate,"host_info");
+  Local<String> info = String::NewFromUtf8(isolate,"info");
+  Local<String> db = String::NewFromUtf8(isolate,"db");
 
-	PropertyAttribute dont_delete_enum = static_cast<PropertyAttribute>(v8::DontDelete|v8::DontEnum);
-	PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
+  PropertyAttribute dont_delete_enum = static_cast<PropertyAttribute>(v8::DontDelete|v8::DontEnum);
+  PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
 	
-	objt->Set(handle,ObjectTemplate::New(isolate),dont_delete_enum);
-	objt->Set(host,ObjectTemplate::New(isolate),dont_delete);  
+  objt->Set(handle,ObjectTemplate::New(isolate),dont_delete_enum);
+  objt->Set(host,ObjectTemplate::New(isolate),dont_delete);  
   objt->Set(user,ObjectTemplate::New(isolate),dont_delete);
   objt->Set(passwd,ObjectTemplate::New(isolate),dont_delete_enum);
   objt->Set(unix_socket,ObjectTemplate::New(isolate),dont_delete);
@@ -50,7 +47,7 @@ void my_connect(const FunctionCallbackInfo<Value>& args) {
   objt->Set(db,ObjectTemplate::New(isolate),dont_delete);
 
   Local<Object> obj = objt->NewInstance();
-	obj->Set(handle,External::New(isolate,con));
+  obj->Set(handle,External::New(isolate,con));
   obj->Set(host,String::NewFromUtf8(isolate,con->host));
   obj->Set(user,String::NewFromUtf8(isolate,con->user));
   obj->Set(passwd,String::NewFromUtf8(isolate,con->passwd));
@@ -78,67 +75,67 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
   
   if(!mysql_query(cn,buf))
   {
-	  Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
-	  MYSQL_RES *res = mysql_use_result(cn);
+    Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
+    MYSQL_RES *res = mysql_use_result(cn);
 
-		if(gen->Value())
-		{
-			args.GetReturnValue().Set(External::New(isolate,res));
-			return;
-		}
-	  
-	  for(int i = 0 ; i < res->field_count; i++)
-	  {
-		  Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-		  objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
-	  }  
-	  
-	  MYSQL_ROW row;
-	  int idx = 0;
-	  
-	  while((row = mysql_fetch_row(res)))
-	  {		  
-		  Local<Object> obj = objt->NewInstance();
-		  for(int i = 0 ; i < res->field_count; i++)
-		  {
-			  Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-			  Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
-			  obj->Set(field,val);
-			  results->Set(idx,obj);
-		  }
-		  idx++;
-	  }
+    if(gen->Value())
+    {
+      args.GetReturnValue().Set(External::New(isolate,res));
+      return;
+    }
+
+    for(int i = 0 ; i < res->field_count; i++)
+    {
+      Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
+      objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
+    }  
+
+    MYSQL_ROW row;
+    int idx = 0;
+
+    while((row = mysql_fetch_row(res)))
+    {
+      Local<Object> obj = objt->NewInstance();
+      for(int i = 0 ; i < res->field_count; i++)
+      {
+        Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
+        Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
+        obj->Set(field,val);
+        results->Set(idx,obj);
+      }
+      idx++;
+    }
   }
   args.GetReturnValue().Set(results);
 }
 
 void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
-	Isolate *isolate = args.GetIsolate();
-	External *rs = External::Cast(*args[0]);
-	MYSQL_RES *res = (MYSQL_RES*)rs->Value();	
-	PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
-	Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
-	
-	for(int i = 0 ; i < res->field_count; i++)
-	{
-		Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-		objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
-	} 
-	  
-	Local<Object> obj = objt->NewInstance();
-	MYSQL_ROW row = mysql_fetch_row(res);
-	if(row)
-	{		
-		for(int i = 0 ; i < res->field_count; i++)
-		{
-			Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-			Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
-			obj->Set(field,val);
-		}
-		args.GetReturnValue().Set(obj);
-		return;
-	}
-	args.GetReturnValue().Set(Undefined(isolate));
+  Isolate *isolate = args.GetIsolate();
+  External *rs = External::Cast(*args[0]);
+  MYSQL_RES *res = (MYSQL_RES*)rs->Value();	
+  PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
+  Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
+
+  for(int i = 0 ; i < res->field_count; i++)
+  {
+    Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
+    objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
+  } 
+
+  Local<Object> obj = objt->NewInstance();
+  MYSQL_ROW row = mysql_fetch_row(res);
+  if(row)
+  {
+    for(int i = 0 ; i < res->field_count; i++)
+    {
+      Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
+      Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
+      obj->Set(field,val);
+    }
+    args.GetReturnValue().Set(obj);
+    return;
+  }
+  args.GetReturnValue().Set(Undefined(isolate));
 }
 
 void my_client_info(const FunctionCallbackInfo<Value>& args) {
@@ -147,7 +144,6 @@ void my_client_info(const FunctionCallbackInfo<Value>& args) {
 }
 
 void v8_version(const FunctionCallbackInfo<Value>& args) {
-  Isolate *iso = args.GetIsolate();
   args.GetReturnValue().Set(String::NewFromUtf8(iso,v8::V8::GetVersion()));
   Local<String> t;
 }
@@ -161,6 +157,4 @@ void init(Local<Object> exports) {
 }
 
 NODE_MODULE(NODE_GYP_MODULE_NAME, init)
-
-}  // namespace demo
 

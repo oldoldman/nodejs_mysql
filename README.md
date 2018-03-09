@@ -6,7 +6,7 @@ clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -share
 ```
 # usage 
 ```javascript
-const my = require('mysql');
+const my = require('./mysql');
 var cn = my.connect();
 // query the whole resultset
 var r = my.query(cn,'select * from user');

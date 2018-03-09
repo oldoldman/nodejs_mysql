@@ -9,10 +9,10 @@ clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -share
 const my = require('mysql');
 var cn = my.connect();
 // query the whole resultset
-var r = my.query(cn,select * from user');
+var r = my.query(cn,'select * from user');
 console.log(r);
 // query use iterator
-var g = my.rset(cn,select * from user');
+var g = my.rset(cn,'select * from user');
 g.next();
 g.next();
 ```

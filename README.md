@@ -2,6 +2,7 @@
 nodejs mysql access module
 
 usage :
+```javascript
 const my = require('mysql');
 // query the whole resultset
 var r = my.query(my.connect(),'select * from user');
@@ -10,4 +11,5 @@ console.log(r);
 var g = my.rset(my.connect(),'select * from user');
 g.next();
 g.next();
+```
 

@@ -2,7 +2,7 @@
 nodejs mysql access module
 # compile
 ```
-clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
+clang++ -std=c++11 -I/usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
 ```
 # usage 
 ```javascript

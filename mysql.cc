@@ -141,12 +141,13 @@ void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
 }
 
 void my_client_info(const FunctionCallbackInfo<Value>& args) {
-  Isolate *iso = args.GetIsolate();
-  args.GetReturnValue().Set(String::NewFromUtf8(iso,mysql_get_client_info()));
+  Isolate *isolate = args.GetIsolate();
+  args.GetReturnValue().Set(String::NewFromUtf8(isolate,mysql_get_client_info()));
 }
 
 void v8_version(const FunctionCallbackInfo<Value>& args) {
-  args.GetReturnValue().Set(String::NewFromUtf8(iso,v8::V8::GetVersion()));
+  Isolate *isolate = args.GetIsolate();
+  args.GetReturnValue().Set(String::NewFromUtf8(isolate,v8::V8::GetVersion()));
   Local<String> t;
 }
 

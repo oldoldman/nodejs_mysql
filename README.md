@@ -1,7 +1,10 @@
 # nodejs_mysql
 nodejs mysql access module
-
-usage :
+# compile
+```
+clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
+```
+# usage 
 ```javascript
 const my = require('mysql');
 // query the whole resultset

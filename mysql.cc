@@ -20,8 +20,8 @@ using v8::Uint32;
 using v8::PropertyCallbackInfo;
 
 #define MYSQL_SERVER_STATUS 1
-#define MYSQL_CLIENT_FLAG 2
-#define MYSQL_STATUS 3
+#define MYSQL_CLIENT_FLAG   2
+#define MYSQL_STATUS        3
 #define MYSQL_WARNING_COUNT 4
 #define MYSQL_AFFECTED_ROWS 5
 
@@ -31,8 +31,7 @@ void get_MYSQL_field(Local<String> property,
   Local<Value> handle = info.This()->Get(String::NewFromUtf8(isolate,"handle"));
   Local<External> external = Local<External>::Cast(handle);
   Uint32 *idx = Uint32::Cast(*(info.Data()));
-  MYSQL *cn = (MYSQL*)external->Value();
-  
+  MYSQL *cn = (MYSQL*)external->Value();  
   switch (idx->Value())
   {
     case MYSQL_SERVER_STATUS:
@@ -56,8 +55,10 @@ void get_MYSQL_field(Local<String> property,
 void my_connect(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
   MYSQL *con = mysql_init(NULL);
-  Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
+  MY_CHARSET_INFO csi;
+  
   con = mysql_real_connect(con,"localhost","root","shang1974","mysql",0,"/tmp/mysql.sock",0);
+  mysql_get_character_set_info(con,&csi);
 
   Local<String> handle = String::NewFromUtf8(isolate,"handle");
   Local<String> host = String::NewFromUtf8(isolate,"host");
@@ -73,10 +74,12 @@ void my_connect(const FunctionCallbackInfo<Value>& args) {
   Local<String> status = String::NewFromUtf8(isolate,"status");
   Local<String> warning_count = String::NewFromUtf8(isolate,"warning_count");
   Local<String> affected_rows = String::NewFromUtf8(isolate,"affected_rows");
+  Local<String> cs = String::NewFromUtf8(isolate,"cs");
 
   PropertyAttribute dont_delete_enum = static_cast<PropertyAttribute>(v8::DontDelete|v8::DontEnum);
   PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
-	
+
+	Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
   objt->Set(handle,ObjectTemplate::New(isolate),dont_delete_enum);
   objt->Set(host,ObjectTemplate::New(isolate),dont_delete);  
   objt->Set(user,ObjectTemplate::New(isolate),dont_delete);
@@ -86,6 +89,7 @@ void my_connect(const FunctionCallbackInfo<Value>& args) {
   objt->Set(host_info,ObjectTemplate::New(isolate),dont_delete);
   objt->Set(info,ObjectTemplate::New(isolate),dont_delete);
   objt->Set(db,ObjectTemplate::New(isolate),dont_delete);
+  objt->Set(cs,ObjectTemplate::New(isolate),dont_delete);
   objt->SetAccessor(client_flag,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_CLIENT_FLAG));
   objt->SetAccessor(server_status,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_SERVER_STATUS));
   objt->SetAccessor(status,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_STATUS));
@@ -100,8 +104,43 @@ void my_connect(const FunctionCallbackInfo<Value>& args) {
   obj->Set(unix_socket,String::NewFromUtf8(isolate,con->unix_socket));
   obj->Set(server_version,String::NewFromUtf8(isolate,con->server_version));
   obj->Set(host_info,String::NewFromUtf8(isolate,con->host_info));
-  obj->Set(info,String::NewFromUtf8(isolate,con->info == nullptr?"":con->info));
-  obj->Set(db,String::NewFromUtf8(isolate,con->db == nullptr?"":con->db));
+  if(con->info == nullptr) obj->Set(info,Null(isolate));
+  else obj->Set(info,String::NewFromUtf8(isolate,con->info));
+  if(con->db == nullptr) obj->Set(db,Null(isolate));
+  else obj->Set(db,String::NewFromUtf8(isolate,con->db));
+  // 
+  Local<ObjectTemplate> cst = ObjectTemplate::New(isolate);
+  Local<String> number = String::NewFromUtf8(isolate,"number");
+  Local<String> state = String::NewFromUtf8(isolate,"state");
+  Local<String> csname = String::NewFromUtf8(isolate,"csname");
+  Local<String> name = String::NewFromUtf8(isolate,"name");
+  Local<String> comment = String::NewFromUtf8(isolate,"comment");
+  Local<String> dir = String::NewFromUtf8(isolate,"dir");
+  Local<String> mbminlen = String::NewFromUtf8(isolate,"mbminlen");
+  Local<String> mbmaxlen = String::NewFromUtf8(isolate,"mbmaxlen");
+  cst->Set(number,ObjectTemplate::New(isolate));
+  cst->Set(state,ObjectTemplate::New(isolate));
+  cst->Set(csname,ObjectTemplate::New(isolate));
+  cst->Set(name,ObjectTemplate::New(isolate));
+  cst->Set(comment,ObjectTemplate::New(isolate));
+  cst->Set(dir,ObjectTemplate::New(isolate));
+  cst->Set(mbminlen,ObjectTemplate::New(isolate));
+  cst->Set(mbmaxlen,ObjectTemplate::New(isolate));
+  Local<Object> csobj = cst->NewInstance();
+  csobj->Set(number,Uint32::New(isolate,csi.number));
+  csobj->Set(state,Uint32::New(isolate,csi.state));
+  if (csi.csname == nullptr) csobj->Set(csname,Null(isolate));
+  else csobj->Set(csname,String::NewFromUtf8(isolate,csi.csname));
+  if (csi.name == nullptr) csobj->Set(name,Null(isolate));
+  else csobj->Set(name,String::NewFromUtf8(isolate,csi.name));
+  if (csi.comment == nullptr) csobj->Set(comment,Null(isolate));
+  else csobj->Set(comment,String::NewFromUtf8(isolate,csi.comment));
+  if (csi.dir == nullptr) csobj->Set(dir,Null(isolate));
+  else csobj->Set(dir,String::NewFromUtf8(isolate,csi.dir));
+  csobj->Set(mbminlen,Uint32::New(isolate,csi.mbminlen));
+  csobj->Set(mbmaxlen,Uint32::New(isolate,csi.mbmaxlen));
+  // 
+  obj->Set(cs,csobj);
   
   args.GetReturnValue().Set(obj);
 }
@@ -145,7 +184,9 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
       for(int i = 0 ; i < res->field_count; i++)
       {
         Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-        Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
+        Local<Value> val;
+        if (row[i] == nullptr) val = Null(isolate);
+        else val = String::NewFromUtf8(isolate,row[i]);
         obj->Set(field,val);
         results->Set(idx,obj);
       }
@@ -177,7 +218,9 @@ void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
     for(int i = 0 ; i < res->field_count; i++)
     {
       Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-      Local<String> val = String::NewFromUtf8(isolate,row[i] == nullptr ? "":row[i]);
+      Local<Value> val;
+      if (row[i] == nullptr) val = Null(isolate);
+      else val = String::NewFromUtf8(isolate, row[i]);
       obj->Set(field,val);
     }
     args.GetReturnValue().Set(obj);

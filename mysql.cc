@@ -1,31 +1,22 @@
 #include <node.h>
 #include <mysql.h>
 /*
-clang++ -std=c++11 -I /usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
+clang++ -std=c++11 -Wno-unused-result -I/usr/local/include/node/ -I/usr/local/include/mysql -shared -o _mysql.node mysql.cc /usr/local/lib/mysql/libmysqlclient.a
 */
-using v8::Array;
-using v8::Boolean;
-using v8::External;
-using v8::FunctionCallbackInfo;
-using v8::FunctionTemplate;
-using v8::Isolate;
-using v8::Local;
-using v8::Object;
-using v8::ObjectTemplate;
-using v8::PropertyAttribute;
-using v8::String;
-using v8::Null;
-using v8::Value;
-using v8::Uint32;
-using v8::PropertyCallbackInfo;
+
+using namespace v8;
 
 #define MYSQL_SERVER_STATUS 1
 #define MYSQL_CLIENT_FLAG   2
 #define MYSQL_STATUS        3
 #define MYSQL_WARNING_COUNT 4
 #define MYSQL_AFFECTED_ROWS 5
+#define STR(string) String::NewFromUtf8(isolate,string)
 
-void get_MYSQL_field(Local<String> property,
+PropertyAttribute dont_delete_enum = static_cast<PropertyAttribute>(v8::DontDelete|v8::DontEnum);
+PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
+
+void get_MYSQL_field(Local<Name> property,
   const PropertyCallbackInfo<Value>& info) {
   Isolate *isolate = info.GetIsolate();
   Local<Value> handle = info.This()->Get(String::NewFromUtf8(isolate,"handle"));
@@ -54,99 +45,54 @@ void get_MYSQL_field(Local<String> property,
 
 void my_connect(const FunctionCallbackInfo<Value>& args) {
   Isolate* isolate = args.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
   MYSQL *con = mysql_init(NULL);
   MY_CHARSET_INFO csi;
   
   con = mysql_real_connect(con,"localhost","root","shang1974","mysql",0,"/tmp/mysql.sock",0);
   mysql_get_character_set_info(con,&csi);
-
-  Local<String> handle = String::NewFromUtf8(isolate,"handle");
-  Local<String> host = String::NewFromUtf8(isolate,"host");
-  Local<String> user = String::NewFromUtf8(isolate,"user");
-  Local<String> passwd = String::NewFromUtf8(isolate,"passwd");
-  Local<String> unix_socket = String::NewFromUtf8(isolate,"unix_socket");
-  Local<String> server_version = String::NewFromUtf8(isolate,"server_version");
-  Local<String> host_info = String::NewFromUtf8(isolate,"host_info");
-  Local<String> info = String::NewFromUtf8(isolate,"info");
-  Local<String> db = String::NewFromUtf8(isolate,"db");
-  Local<String> client_flag = String::NewFromUtf8(isolate,"client_flag");
-  Local<String> server_status = String::NewFromUtf8(isolate,"server_status");
-  Local<String> status = String::NewFromUtf8(isolate,"status");
-  Local<String> warning_count = String::NewFromUtf8(isolate,"warning_count");
-  Local<String> affected_rows = String::NewFromUtf8(isolate,"affected_rows");
-  Local<String> cs = String::NewFromUtf8(isolate,"cs");
-
-  PropertyAttribute dont_delete_enum = static_cast<PropertyAttribute>(v8::DontDelete|v8::DontEnum);
-  PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
-
-	Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
-  objt->Set(handle,ObjectTemplate::New(isolate),dont_delete_enum);
-  objt->Set(host,ObjectTemplate::New(isolate),dont_delete);  
-  objt->Set(user,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(passwd,ObjectTemplate::New(isolate),dont_delete_enum);
-  objt->Set(unix_socket,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(server_version,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(host_info,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(info,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(db,ObjectTemplate::New(isolate),dont_delete);
-  objt->Set(cs,ObjectTemplate::New(isolate),dont_delete);
-  objt->SetAccessor(client_flag,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_CLIENT_FLAG));
-  objt->SetAccessor(server_status,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_SERVER_STATUS));
-  objt->SetAccessor(status,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_STATUS));
-  objt->SetAccessor(warning_count,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_WARNING_COUNT));
-  objt->SetAccessor(affected_rows,get_MYSQL_field,0,Uint32::New(isolate,MYSQL_AFFECTED_ROWS));  
-
-  Local<Object> obj = objt->NewInstance();
-  obj->Set(handle,External::New(isolate,con));
-  obj->Set(host,String::NewFromUtf8(isolate,con->host));
-  obj->Set(user,String::NewFromUtf8(isolate,con->user));
-  obj->Set(passwd,String::NewFromUtf8(isolate,con->passwd));
-  obj->Set(unix_socket,String::NewFromUtf8(isolate,con->unix_socket));
-  obj->Set(server_version,String::NewFromUtf8(isolate,con->server_version));
-  obj->Set(host_info,String::NewFromUtf8(isolate,con->host_info));
-  if(con->info == nullptr) obj->Set(info,Null(isolate));
-  else obj->Set(info,String::NewFromUtf8(isolate,con->info));
-  if(con->db == nullptr) obj->Set(db,Null(isolate));
-  else obj->Set(db,String::NewFromUtf8(isolate,con->db));
-  // 
-  Local<ObjectTemplate> cst = ObjectTemplate::New(isolate);
-  Local<String> number = String::NewFromUtf8(isolate,"number");
-  Local<String> state = String::NewFromUtf8(isolate,"state");
-  Local<String> csname = String::NewFromUtf8(isolate,"csname");
-  Local<String> name = String::NewFromUtf8(isolate,"name");
-  Local<String> comment = String::NewFromUtf8(isolate,"comment");
-  Local<String> dir = String::NewFromUtf8(isolate,"dir");
-  Local<String> mbminlen = String::NewFromUtf8(isolate,"mbminlen");
-  Local<String> mbmaxlen = String::NewFromUtf8(isolate,"mbmaxlen");
-  cst->Set(number,ObjectTemplate::New(isolate));
-  cst->Set(state,ObjectTemplate::New(isolate));
-  cst->Set(csname,ObjectTemplate::New(isolate));
-  cst->Set(name,ObjectTemplate::New(isolate));
-  cst->Set(comment,ObjectTemplate::New(isolate));
-  cst->Set(dir,ObjectTemplate::New(isolate));
-  cst->Set(mbminlen,ObjectTemplate::New(isolate));
-  cst->Set(mbmaxlen,ObjectTemplate::New(isolate));
-  Local<Object> csobj = cst->NewInstance();
-  csobj->Set(number,Uint32::New(isolate,csi.number));
-  csobj->Set(state,Uint32::New(isolate,csi.state));
-  if (csi.csname == nullptr) csobj->Set(csname,Null(isolate));
-  else csobj->Set(csname,String::NewFromUtf8(isolate,csi.csname));
-  if (csi.name == nullptr) csobj->Set(name,Null(isolate));
-  else csobj->Set(name,String::NewFromUtf8(isolate,csi.name));
-  if (csi.comment == nullptr) csobj->Set(comment,Null(isolate));
-  else csobj->Set(comment,String::NewFromUtf8(isolate,csi.comment));
-  if (csi.dir == nullptr) csobj->Set(dir,Null(isolate));
-  else csobj->Set(dir,String::NewFromUtf8(isolate,csi.dir));
-  csobj->Set(mbminlen,Uint32::New(isolate,csi.mbminlen));
-  csobj->Set(mbmaxlen,Uint32::New(isolate,csi.mbmaxlen));
-  // 
-  obj->Set(cs,csobj);
   
+	Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
+	Local<Object> obj = objt->NewInstance();  
+
+  obj->DefineOwnProperty(context,STR("handle"),External::New(isolate,con),dont_delete_enum);
+  obj->DefineOwnProperty(context,STR("host"),STR(con->host),dont_delete);
+  obj->DefineOwnProperty(context,STR("user"),STR(con->user),dont_delete);
+  obj->DefineOwnProperty(context,STR("passwd"),STR(con->passwd),dont_delete_enum);
+  obj->DefineOwnProperty(context,STR("unix_socket"),STR(con->unix_socket),dont_delete);
+  obj->DefineOwnProperty(context,STR("server_version"),STR(con->server_version),dont_delete);
+  obj->DefineOwnProperty(context,STR("host_info"),STR(con->host_info),dont_delete);
+  if(con->info == nullptr) obj->DefineOwnProperty(context,STR("info"),Null(isolate),dont_delete);
+  else obj->DefineOwnProperty(context,STR("info"),STR(con->info),dont_delete);
+  if(con->db == nullptr) obj->DefineOwnProperty(context,STR("db"),Null(isolate),dont_delete);
+  else obj->DefineOwnProperty(context,STR("db"),STR(con->db),dont_delete);
+  obj->SetAccessor(context,STR("server_status"),get_MYSQL_field,nullptr,Uint32::New(isolate,MYSQL_SERVER_STATUS),DEFAULT,dont_delete);
+  obj->SetAccessor(context,STR("client_flag"),get_MYSQL_field,nullptr,Uint32::New(isolate,MYSQL_CLIENT_FLAG),DEFAULT,dont_delete);
+  obj->SetAccessor(context,STR("status"),get_MYSQL_field,nullptr,Uint32::New(isolate,MYSQL_STATUS),DEFAULT,dont_delete);
+  obj->SetAccessor(context,STR("warning_count"),get_MYSQL_field,nullptr,Uint32::New(isolate,MYSQL_WARNING_COUNT),DEFAULT,dont_delete);
+  obj->SetAccessor(context,STR("affected_rows"),get_MYSQL_field,nullptr,Uint32::New(isolate,MYSQL_AFFECTED_ROWS),DEFAULT,dont_delete);
+
+  Local<Object> csobj = objt->NewInstance();
+  csobj->DefineOwnProperty(context,STR("number"),Uint32::New(isolate,csi.number),dont_delete);
+  csobj->DefineOwnProperty(context,STR("state"),Uint32::New(isolate,csi.state),dont_delete);
+  if (csi.csname == nullptr) csobj->DefineOwnProperty(context,STR("csname"),Null(isolate),dont_delete);
+  else csobj->DefineOwnProperty(context,STR("csname"),STR(csi.csname),dont_delete);
+  if (csi.name == nullptr) csobj->DefineOwnProperty(context,STR("name"),Null(isolate),dont_delete);
+  else csobj->DefineOwnProperty(context,STR("name"),STR(csi.name),dont_delete);
+  if (csi.comment == nullptr) csobj->DefineOwnProperty(context,STR("comment"),Null(isolate),dont_delete);
+  else csobj->DefineOwnProperty(context,STR("comment"),STR(csi.comment),dont_delete);
+  if (csi.dir == nullptr) csobj->DefineOwnProperty(context,STR("dir"),Null(isolate),dont_delete);
+  else csobj->DefineOwnProperty(context,STR("dir"),STR(csi.dir),dont_delete);
+  csobj->DefineOwnProperty(context,STR("mbminlen"),Uint32::New(isolate,csi.mbminlen),dont_delete);
+  csobj->DefineOwnProperty(context,STR("mbmaxlen"),Uint32::New(isolate,csi.mbmaxlen),dont_delete);
+  
+  obj->DefineOwnProperty(context,STR("cs"),csobj,dont_delete);  
   args.GetReturnValue().Set(obj);
 }
 
 void my_query(const FunctionCallbackInfo<Value>& args) {
   Isolate *isolate = args.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
   External *con = External::Cast(*args[0]);
   String *query = String::Cast(*args[1]);
   Boolean *gen = Boolean::Cast(*args[2]);
@@ -156,7 +102,7 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
 
   MYSQL *cn = (MYSQL*)con->Value();
   Local<Array> results = Array::New(isolate);
-  PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
+  
   
   if(!mysql_query(cn,buf))
   {
@@ -169,12 +115,6 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
       return;
     }
 
-    for(int i = 0 ; i < res->field_count; i++)
-    {
-      Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-      objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
-    }  
-
     MYSQL_ROW row;
     int idx = 0;
 
@@ -183,11 +123,10 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
       Local<Object> obj = objt->NewInstance();
       for(int i = 0 ; i < res->field_count; i++)
       {
-        Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
         Local<Value> val;
         if (row[i] == nullptr) val = Null(isolate);
-        else val = String::NewFromUtf8(isolate,row[i]);
-        obj->Set(field,val);
+        else val = STR(row[i]);
+        obj->DefineOwnProperty(context,STR(res->fields[i].name),val,dont_delete);
         results->Set(idx,obj);
       }
       idx++;
@@ -200,28 +139,22 @@ void my_query(const FunctionCallbackInfo<Value>& args) {
 
 void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
   Isolate *isolate = args.GetIsolate();
+  Local<Context> context = isolate->GetCurrentContext();
   External *rs = External::Cast(*args[0]);
   MYSQL_RES *res = (MYSQL_RES*)rs->Value();	
   PropertyAttribute dont_delete = static_cast<PropertyAttribute>(v8::DontDelete);
+
   Local<ObjectTemplate> objt = ObjectTemplate::New(isolate);
-
-  for(int i = 0 ; i < res->field_count; i++)
-  {
-    Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
-    objt->Set(field,ObjectTemplate::New(isolate),dont_delete);
-  } 
-
   Local<Object> obj = objt->NewInstance();
   MYSQL_ROW row = mysql_fetch_row(res);
   if(row)
   {
     for(int i = 0 ; i < res->field_count; i++)
     {
-      Local<String> field = String::NewFromUtf8(isolate,res->fields[i].name);
       Local<Value> val;
       if (row[i] == nullptr) val = Null(isolate);
       else val = String::NewFromUtf8(isolate, row[i]);
-      obj->Set(field,val);
+      obj->DefineOwnProperty(context,STR(res->fields[i].name),val,dont_delete);
     }
     args.GetReturnValue().Set(obj);
     return;
@@ -231,12 +164,12 @@ void my_fetch_row(const FunctionCallbackInfo<Value>& args) {
 
 void my_client_info(const FunctionCallbackInfo<Value>& args) {
   Isolate *isolate = args.GetIsolate();
-  args.GetReturnValue().Set(String::NewFromUtf8(isolate,mysql_get_client_info()));
+  args.GetReturnValue().Set(STR(mysql_get_client_info()));
 }
 
 void v8_version(const FunctionCallbackInfo<Value>& args) {
   Isolate *isolate = args.GetIsolate();
-  args.GetReturnValue().Set(String::NewFromUtf8(isolate,v8::V8::GetVersion()));
+  args.GetReturnValue().Set(STR(v8::V8::GetVersion()));
   Local<String> t;
 }
 
